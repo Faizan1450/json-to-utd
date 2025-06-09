@@ -1,0 +1,27 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "A Node-Express backend that accepts a POST with an Iflow ID, looks it up in an Excel-based RICEF tracker (local or SharePoint), enriches data via optional CPI calls or Gemini AI, and feeds the result into a Word-template engine to produce a ready UTD document for download—all via clean, modular services and REST APIs.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Syed Faizan Ali",
+  "license": "ISC",
+  "dependencies": {
+    "@google/genai": "^1.4.0",
+    "axios": "^1.9.0",
+    "docxtemplater": "^3.63.2",
+    "dotenv": "^16.5.0",
+    "exceljs": "^4.4.0",
+    "express": "^5.1.0",
+    "express-async-handler": "^1.2.0",
+    "joi": "^17.13.3",
+    "pizzip": "^3.2.0"
+  },
+  "overrides": {
+    "rimraf": "^4.0.0",
+    "glob": "^9.0.0",
+    "inflight": "npm:lru-cache@latest"
+  }
+}
