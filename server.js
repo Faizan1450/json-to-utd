@@ -2,6 +2,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const generateRouter = require('./router/generateRouter');
 const { globalErrorhandler, notFound } = require('./middleware/globalErrorHandler');
+const cors = require('cors');
 
 //! Load the Environment Variable
 dotenv.config();
@@ -11,7 +12,8 @@ const app = express()
 
 //! Set up the middleware
 app.use(express.json());
-
+app.use(cors());
+app.use(express.urlencoded({ extended: true }));
 // Routes
 //?Setup the User route
 app.use('/api/v1/', generateRouter);

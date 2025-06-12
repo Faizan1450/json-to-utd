@@ -6,7 +6,7 @@ const Docxtemplater = require('docxtemplater');
 
 const createTemplate = asyncHandler(async (iflowJson) => {
     const data = iflowJson;
-
+    console.log(process.env.UTD_TEMPLATE2)
     const content = fs.readFileSync(
         process.env.UTD_TEMPLATE, "binary"
     ); 
@@ -18,12 +18,15 @@ const createTemplate = asyncHandler(async (iflowJson) => {
         paragraphLoop: true,
         linebreaks: true,
     });
+    // throw new Error("UTD_TEMPLATE2 environment variable is not set");
 
     doc.render(data);
 
     const buf = doc.toBuffer();
 
+
     //UTD_{IDD}_{SENDERINTERFACENAME/ DOCUMENTTYPE(B2B)}
+    console.log("Line 29", iflowJson)
     const IDD = iflowJson['IDD'] || '';
     const senderInterface = iflowJson['SENDER_INTERFACE_NAME'];
     const region = iflowJson['REGION'] || '';
@@ -31,7 +34,7 @@ const createTemplate = asyncHandler(async (iflowJson) => {
     const filePath = path.resolve(process.env.OUTPUT_UTD_DESTINATION, fileName);
     fs.writeFileSync(filePath, buf);
     
-    return `File created successfully: ${filePath}`;
+    return fileName;
 });
 
 module.exports = createTemplate;

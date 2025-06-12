@@ -9,8 +9,14 @@ const searchIflow = asyncHandler(async (iflow) => {
     error.status = 400; // Bad Request
     throw error;
   }
-  /* -------------------------------------------------- */
+ 
+  // Fetch Excel sheet path
   const filePath = process.env.XLSX_PATH;
+  if (!filePath || !fs.existsSync(filePath)) {
+    const error = new Error(`File not found: ${filePath}`);
+    throw error;
+  }
+
   // check that iflowIdInput string contains _NA_ or _LA_
   let sheetName = "";
   let columnName = "";
@@ -22,13 +28,8 @@ const searchIflow = asyncHandler(async (iflow) => {
     columnName = process.env.COLUMN_NAME_NA.toUpperCase();
   }
 
-  if (!iflowIdInput || !filePath || !sheetName || !columnName) {
-    const error = new Error("Missing required arguments or environment variables.");
-    throw error;
-  }
-
-  if (!fs.existsSync(filePath)) {
-    const error = new Error(`File not found: ${filePath}`);
+  if (!sheetName || !columnName) {
+    const error = new Error("Something went wrong with Sheet or Column Name");
     throw error;
   }
 
@@ -94,10 +95,8 @@ const searchIflow = asyncHandler(async (iflow) => {
   if (multipleHits) {
     throw new Error(`❌ Multiple matches found for iFlow ID "${iflowIdInput}"`);
   }
-  
-  // Adding iflowIdInput to the found Object
-  foundRow.iflowIdInput = iflowIdInput;
-  return foundRow
+  foundRow.iflowIdInput = iflowIdInput; // Add the iflowIdInput to the found row
+  return { foundRow, worksheet, headers, iflowIdInput };
 });
 
 module.exports = searchIflow;
