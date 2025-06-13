@@ -31,7 +31,7 @@ const getWorkSheet = asyncHandler(async () => {
         throw error;
     }
 
-    return {NA:worksheetNA, LA:worksheetNA};
+    return {NA:worksheetNA, LA:worksheetLA};
 });
 
 module.exports = getWorkSheet;

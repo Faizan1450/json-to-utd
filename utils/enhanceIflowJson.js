@@ -25,8 +25,12 @@ const enhanceIflowJson = asyncHandler(async (iflowJsonArray, iflowIdInput) => {
             delete iflowJson['NA PACKAGE'];
             delete iflowJson['SENDERINTERFACE (DOC TYPE)'];
         }
-        iflowIdInput = iflowJson.IFLOW_NAME.toLowerCase().trim();
         
+        if (!iflowJson.IFLOW_NAME) {
+            return;
+        }
+        iflowIdInput = iflowJson.IFLOW_NAME?.toLowerCase().trim();
+
 
         //* Handling the RESOURCE Name
         if (!iflowJson['M.RESOURCE']) {
@@ -77,7 +81,7 @@ const enhanceIflowJson = asyncHandler(async (iflowJsonArray, iflowIdInput) => {
         const year = currentDate.getFullYear();
         iflowJson.DATE = `${day}/${month}/${year}`;
 
-        
+
 
         result.push(iflowJson);
     }

@@ -6,9 +6,14 @@ const Docxtemplater = require('docxtemplater');
 
 const createTemplate = asyncHandler(async (iflowJson) => {
     const data = iflowJson;
-    console.log(process.env.UTD_TEMPLATE2)
+    let template = "";
+    if (Array.isArray(iflowJson.RECEIVERSERVICE)) {
+        template = process.env.UTD_TEMPLATE2;
+    } else {
+        template = process.env.UTD_TEMPLATE;
+    }
     const content = fs.readFileSync(
-        process.env.UTD_TEMPLATE, "binary"
+        template, "binary"
     ); 
 
     // Unzip the content of the file
@@ -18,19 +23,24 @@ const createTemplate = asyncHandler(async (iflowJson) => {
         paragraphLoop: true,
         linebreaks: true,
     });
-    // throw new Error("UTD_TEMPLATE2 environment variable is not set");
 
     doc.render(data);
-
     const buf = doc.toBuffer();
 
 
     //UTD_{IDD}_{SENDERINTERFACENAME/ DOCUMENTTYPE(B2B)}
-    console.log("Line 29", iflowJson)
-    const IDD = iflowJson['IDD'] || '';
+   
+    let IDD = "";
+    if (Array.isArray(iflowJson['IDD'])) {
+        iflowJson['IDD'].forEach(obj => {
+            IDD += obj.IDD + "_";
+        })
+    } else {
+        IDD = (iflowJson['IDD'] || "") + "_";
+    }
     const senderInterface = iflowJson['SENDER_INTERFACE_NAME'];
     const region = iflowJson['REGION'] || '';
-    const fileName = `UTD_${IDD}_${region}_${senderInterface}.docx`;
+    const fileName = `UTD_${IDD}${region}_${senderInterface}.docx`;
     const filePath = path.resolve(process.env.OUTPUT_UTD_DESTINATION, fileName);
     fs.writeFileSync(filePath, buf);
     

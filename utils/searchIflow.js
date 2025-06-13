@@ -1,49 +1,34 @@
 const asyncHandler = require('express-async-handler');
-const ExcelJS = require('exceljs');
-const fs = require('fs');
 
-const searchIflow = asyncHandler(async (iflow) => {
+const searchIflow = asyncHandler(async (iflow, sheet) => {
   const iflowIdInput = iflow.trim().toLowerCase();
   if (!iflowIdInput) {
     const error = new Error("Iflow name is required");
     error.status = 400; // Bad Request
     throw error;
   }
- 
-  // Fetch Excel sheet path
-  const filePath = process.env.XLSX_PATH;
-  if (!filePath || !fs.existsSync(filePath)) {
-    const error = new Error(`File not found: ${filePath}`);
-    throw error;
-  }
 
   // check that iflowIdInput string contains _NA_ or _LA_
-  let sheetName = "";
-  let columnName = "";
   if (iflowIdInput.includes('_la_')) {
-    sheetName = process.env.SHEET_NAME_LA;
+    worksheet = sheet.LA
     columnName = process.env.COLUMN_NAME_LA.toUpperCase();
   } else {
-    sheetName = process.env.SHEET_NAME_NA;
+    worksheet = sheet.NA;
     columnName = process.env.COLUMN_NAME_NA.toUpperCase();
   }
 
-  if (!sheetName || !columnName) {
-    const error = new Error("Something went wrong with Sheet or Column Name");
+  if (!worksheet || !columnName) {
+    const error = new Error("Something went wrong with Worksheet or Column Name");
     throw error;
   }
 
-  /* -------------------------------------------------- */
-  /* 2. Load workbook & sheet                           */
-  /* -------------------------------------------------- */
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(filePath);
-
-  const worksheet = workbook.getWorksheet(sheetName);
-  if (!worksheet) {
-    const error = new Error(`Sheet "${sheetName}" not found.`);
-    throw error;
+  let SENDER_INTERFACE_KEY = "";
+  if (iflowIdInput.includes('_la_')) {
+    SENDER_INTERFACE_KEY = process.env.SENDER_INTERFACE_LA;
+  } else {
+    SENDER_INTERFACE_KEY = process.env.SENDER_INTERFACE_NA;
   }
+  let SENDER_INTERFACE_NAME = "";
 
   /* -------------------------------------------------- */
   /* 3. Build header map (row 1)                        */
@@ -55,48 +40,63 @@ const searchIflow = asyncHandler(async (iflow) => {
     }
   });
   // Column index is 1‑based in exceljs
-  const idColIndex = headers.findIndex(h =>
+  const iflowIndex = headers.findIndex(h =>
     h === columnName
   );
-  if (idColIndex === -1) {
+  if (iflowIndex === -1) {
     const error = new Error(`❌ Column "${columnName}" not found in sheet.`);
+    throw error;
+  }
+
+  const senderInterfaceIndex = headers.findIndex(h =>
+    h === SENDER_INTERFACE_KEY
+  );
+  if (senderInterfaceIndex === -1) {
+    const error = new Error(`❌ Column senderInterfaceIndex not found in sheet.`);
     throw error;
   }
 
   /* -------------------------------------------------- */
   /* 4. Iterate rows until match                        */
   /* -------------------------------------------------- */
-  let foundRow = null;
-  let multipleHits = false;
 
   worksheet.eachRow({ includeEmpty: false }, (row) => {
-    const cellVal = (row.getCell(idColIndex).value || '').toString().trim()?.toLowerCase();
-
+    const cellVal = (row.getCell(iflowIndex).value || '').toString().trim()?.toLowerCase();
     if (cellVal === iflowIdInput) {
-      if (foundRow) {
-        multipleHits = true;
-        return;
-      }
+      SENDER_INTERFACE_NAME = row.getCell(senderInterfaceIndex).value;
+      return;
+    }
+  });
+
+  let resJson = [];
+  worksheet.eachRow({ includeEmpty: false }, (row) => {
+    const cellVal = (row.getCell(senderInterfaceIndex).value || '').toString().trim()?.toLowerCase();
+
+    if (cellVal === SENDER_INTERFACE_NAME.toLowerCase()) {
+
+      const hasDescope = row.values.some(val => {
+        const str = (val || '').toString().trim().toLowerCase();
+        return str === 'descope' || str === 'descoped';
+      });
+
+      if (hasDescope) return;
+
       const obj = {};
       row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
         const header = headers[colNumber] || '';
         obj[header] = cell.value ? cell.value.toString() : '';
       });
-      foundRow = obj;
+      resJson.push(obj);
     }
   });
 
   /* -------------------------------------------------- */
   /* 5. Outcome                                         */
   /* -------------------------------------------------- */
-  if (!foundRow) {
-    throw new Error(`❌ No match found for iFlow ID "${iflowIdInput}"`);
+  if (!resJson) {
+    throw new Error(`❌ No match found for iFlow ID "${iflowIdInput}" Or Its Descoped`);
   }
-  if (multipleHits) {
-    throw new Error(`❌ Multiple matches found for iFlow ID "${iflowIdInput}"`);
-  }
-  foundRow.iflowIdInput = iflowIdInput; // Add the iflowIdInput to the found row
-  return { foundRow, worksheet, headers, iflowIdInput };
+  return resJson;
 });
 
 module.exports = searchIflow;

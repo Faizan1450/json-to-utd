@@ -1,7 +1,9 @@
 function mergeJsonArray(data) {
-    const result = {};
-    const temp = {};
+    if(data.length < 2) {
+        return data[0];
+    }
 
+    const temp = {};
     data.forEach(obj => {
         for (const [key, value] of Object.entries(obj)) {
             const lowerKey = key.toLowerCase();
@@ -12,15 +14,12 @@ function mergeJsonArray(data) {
         }
     });
 
+    const result = {};
     for (const key in temp) {
         const values = Array.from(temp[key]).map(v => JSON.parse(v));
 
         // Handle special cases for NAME -> NAMES, address -> addresss
-        if (key === "NAME") {
-            result["NAMES"] = values.map(val => ({ NAME: val }));
-        } else if (key === "address") {
-            result["addresss"] = values.map(val => ({ address: val }));
-        } else if (values.length === 1) {
+        if (values.length === 1) {
             result[key] = values[0];
         } else {
             result[key] = values.map(val => ({ [key]: val }));
