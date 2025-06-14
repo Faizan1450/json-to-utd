@@ -45,16 +45,19 @@ const generateUTD = asyncHandler(async (req, resp) => {
 
             //! Check Pipline is required or not
             const pattern = iflowJson.PATTERN || '';
+            iflowJson.PIPELINE_PACKAGE_NAME = "";
+            iflowJson.PIPELINE_IFLOW_NAME = "";
             if (pattern?.startsWith("OB Idoc") || pattern?.startsWith("OB Proxy")) {
                 const { pipelinePackageName, pipelineIflowNames } = await fetchPipeline(iflowJson, iflow);
                 if (pipelineIflowNames && pipelinePackageName) {
+                     console.log("ENTERED")
+                     console.log(pipelineIflowNames, pipelinePackageName);
                     iflowJson.PIPELINE_PACKAGE_NAME = pipelinePackageName;
                     iflowJson.PIPELINE_IFLOW_NAME = pipelineIflowNames;
-                } else {
-                    iflowJson.PIPELINE_PACKAGE_NAME = "";
-                    iflowJson.PIPELINE_IFLOW_NAME = "";
                 }
             }
+            console.log("iflowJson.PIPELINE_PACKAGE_NAME", iflowJson.PIPELINE_PACKAGE_NAME)
+            console.log("iflowJson.PIPELINE_IFLOW_NAME", iflowJson.PIPELINE_IFLOW_NAME)
 
 
             //! Generate the description using GenAI
