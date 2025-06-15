@@ -8,6 +8,7 @@ const genAI = asyncHandler(async (iflowJson) => {
     const prompt = `${context}\n\nIflow Details in JSON: ${iflowJson}\n\nReply:`;
     const response = await ai.models.generateContent({
         model: "gemini-2.0-flash",
+        // model: "gemini-2.0-flash-lite",
         contents: prompt,
     });
     return response.text.trim();

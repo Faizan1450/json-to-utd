@@ -1,15 +1,19 @@
 function normalizeIflowPayload(body) {
-    const { iflow, reviewerName, senderComponent, iflows } = body;
+    const { iflow, reviewerName, senderComponent, iflows, grouped } = body;
 
-    if (Array.isArray(iflows)) {
+    if (iflows && Array.isArray(iflows)) {
         return iflows; // already in final format
     }
 
     if (Array.isArray(iflow)) {
+        if(grouped) {
+            return [body];
+        }
         return iflow.map(flow => ({
             iflow: flow,
             reviewerName,
-            senderComponent
+            senderComponent,
+            grouped:false
         }));
     }
 

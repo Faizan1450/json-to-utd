@@ -25,12 +25,19 @@ const enhanceIflowJson = asyncHandler(async (iflowJsonArray, iflowIdInput) => {
             delete iflowJson['NA PACKAGE'];
             delete iflowJson['SENDERINTERFACE (DOC TYPE)'];
         }
-        
+
         if (!iflowJson.IFLOW_NAME) {
             return;
         }
         iflowIdInput = iflowJson.IFLOW_NAME?.toLowerCase().trim();
-
+        // Adding Enironment to the JSON
+        if (iflowIdInput.includes("cloud")) {
+            iflowJson.RUNTIME = "Cloud"
+        } else if (iflowIdInput.includes("eic")){
+            iflowJson.RUNTIME = "EIC"
+        } else {
+            iflowJson.RUNTIME = ""
+        }
 
         //* Handling the RESOURCE Name
         if (!iflowJson['M.RESOURCE']) {
@@ -62,7 +69,7 @@ const enhanceIflowJson = asyncHandler(async (iflowJsonArray, iflowIdInput) => {
             iflowJson.TARGET_SYSTEM = systems[1].split('_')[0].toUpperCase();
         } else {
             iflowJson.SOURCE_SYSTEM = iflowIdInput.split('_')[0].toUpperCase();
-            iflowJson.TARGET_SYSTEM = "TargetSystemName";
+            iflowJson.TARGET_SYSTEM = "[Target Name]";
         }
 
         //* Fetching Region

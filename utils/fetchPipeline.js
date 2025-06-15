@@ -4,6 +4,9 @@ const fetchPipeline = asyncHandler(async (iflowJson, iflowInputID) => {
     const pattern = iflowJson.PATTERN || '';
     let pipelinePackageName = '';
     let pipelineIflowNames = '';
+    if(Array.isArray(iflowInputID)) {
+        iflowInputID = iflowInputID[0];
+    }
     // check is Pattern starts with either "OB Idoc" or "OB Proxy"
     if (iflowInputID.includes("Cloud")) {
         pipelinePackageName = `1. MDLZ - Pipeline - Generic Integration Flows & Templates Cloud`;
