@@ -1,99 +1,75 @@
 const toTitleCase = require('./toTitleCase');
 const asyncHandler = require("express-async-handler");
 
-const enhanceIflowJson = asyncHandler(async (iflowJsonArray, iflowIdInput) => {
+const enhanceIflowJson = asyncHandler(async (iflowJson, iflowObj) => {
 
-    //* Code to conditionally normalizes key names in an iFlow JSON. Based on the region i.e LA or NA
-    let result = [];
-    for (let iflowJson of iflowJsonArray) {
-        if (iflowIdInput.includes('_la_')) {
-            iflowJson.IFLOW_NAME = iflowJson['IFLOW'];
-            iflowJson.PACKAGE_NAME = iflowJson['PACKAGE'];
-            iflowJson.SENDER_INTERFACE_NAME = iflowJson['SENDERINTERFACENAME/ DOCUMENTTYPE(B2B)'];
-            iflowJson.RECEIVERCHANNEL = iflowJson['RECEIVER CHANNEL'];
-
-            delete iflowJson['IFLOW'];
-            delete iflowJson['PACKAGE'];
-            delete iflowJson['SENDERINTERFACENAME/ DOCUMENTTYPE(B2B)'];
-            delete iflowJson['RECEIVER CHANNEL'];
+    //! Fetch Runtime
+    iflowJson.RUNTIME = []
+    iflowJson.IFLOW.forEach(obj => {
+        let iflow = obj.IFLOW.toLowerCase();
+        if (iflow.includes("cloud")) {
+            iflowJson.RUNTIME.push({ RUNTIME: "Cloud" })
+        } else if (iflow.includes("eic")) {
+            iflowJson.RUNTIME.push({ RUNTIME: "EIC" })
         } else {
-            iflowJson.IFLOW_NAME = iflowJson['NA IFLOW'];
-            iflowJson.PACKAGE_NAME = iflowJson['NA PACKAGE'];
-            iflowJson.SENDER_INTERFACE_NAME = iflowJson['SENDERINTERFACE (DOC TYPE)'];
-
-            delete iflowJson['NA IFLOW'];
-            delete iflowJson['NA PACKAGE'];
-            delete iflowJson['SENDERINTERFACE (DOC TYPE)'];
+            iflowJson.RUNTIME.push({ RUNTIME: "" })
         }
+    })
 
-        if (!iflowJson.IFLOW_NAME) {
-            return;
-        }
-        iflowIdInput = iflowJson.IFLOW_NAME?.toLowerCase().trim();
-        // Adding Enironment to the JSON
-        if (iflowIdInput.includes("cloud")) {
-            iflowJson.RUNTIME = "Cloud"
-        } else if (iflowIdInput.includes("eic")){
-            iflowJson.RUNTIME = "EIC"
+    //! Extract Sender and Receiver Adapters
+    iflowJson.SENDER_ADAPTER = []
+    // iflowJson.SENDER_ADAPTER = iflowJson.SENDER_CHANNEL[0].SENDER_CHANNEL.startsWith('CC') ? obj.SENDER_CHANNEL.split('_')[1] : obj.SENDER_CHANNEL.trim();
+    iflowJson.SENDER_CHANNEL.forEach(obj => {
+        let senderAdapter = obj.SENDER_CHANNEL.startsWith('CC') ? obj.SENDER_CHANNEL.split('_')[1] : obj.SENDER_CHANNEL.trim();
+        iflowJson.SENDER_ADAPTER.push({ SENDER_ADAPTER: senderAdapter });
+    });
+
+
+    iflowJson.RECEIVER_ADAPTER = []
+    iflowJson.RECEIVER_CHANNEL.forEach(obj => {
+        let receiverAdapter = obj.RECEIVER_CHANNEL.startsWith('CC') ? obj.RECEIVER_CHANNEL.split('_')[1] : obj.RECEIVER_CHANNEL.trim();
+        iflowJson.RECEIVER_ADAPTER.push({ RECEIVER_ADAPTER: receiverAdapter });
+    });
+
+    //! Extract Source and Target Systems
+    let source = [];
+    let source_name = [];
+    let target = [];
+    iflowJson.IFLOW.forEach(obj => {
+        if (obj.IFLOW.toUpperCase().includes('_TO_')) {
+            const systems = obj.IFLOW.toUpperCase().split('_TO_');
+            source.push({ SOURCE: systems[0].split('_')[0] });
+            source_name.push({ SOURCE_NAME: systems[0].replace(/_(NA|LA)_/, "_") });
+            if (systems[1].includes('_IDD')) {
+                target.push({ TARGET: systems[1].split('_IDD')[0] });
+            } else {
+                target.push({ TARGET: systems[1].split('_')[0] });
+            }
         } else {
-            iflowJson.RUNTIME = ""
+            source.push({ SOURCE: obj.IFLOW.split('_')[0] });
+            source_name.push({ SOURCE_NAME: obj.IFLOW.split('_')[0] });
+            target.push({ TARGET: "Target Name" });
         }
+    })
+    iflowJson.SOURCE = source;
+    iflowJson.SOURCE_NAME = source_name;
+    iflowJson.TARGET = target;
 
-        //* Handling the RESOURCE Name
-        if (!iflowJson['M.RESOURCE']) {
-            iflowJson['M.RESOURCE'] = "Not Assigned"
-        }
-        iflowJson.RESOURCE_NAME = toTitleCase(iflowJson['M.RESOURCE']);
-        // iflowJson.RESOURCE_NAME = "Syed Faizan Ali";
-        delete iflowJson['M.RESOURCE', "Resource"];
+    //! Adding current date to the iflowJson in DD/MM/YYYY format
+    const currentDate = new Date();
+    const day = String(currentDate.getDate()).padStart(2, '0');
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const year = currentDate.getFullYear();
+    iflowJson.DATE = `${day}/${month}/${year}`;
 
+    //! Adding Reviewer Name
+    let reviewerName = iflowObj.reviewerName?.trim();
+    iflowJson.REVIEWER = reviewerName ? toTitleCase(reviewerName) : "Govindaraj Thangavel";
 
-        //* Extract Sender and Receiver Adapters
-        if (iflowJson.SENDERCHANNEL) {
-            iflowJson.SENDER_ADAPTER = iflowJson.SENDERCHANNEL.startsWith('CC') ? iflowJson.SENDERCHANNEL.split('_')[1] : iflowJson.SENDERCHANNEL
-        } else {
-            iflowJson.SENDER_ADAPTER = "SenderAdapter";
-        }
-
-        if (iflowJson.RECEIVERCHANNEL) {
-            iflowJson.RECEIVER_ADAPTER = iflowJson.RECEIVERCHANNEL.startsWith('CC') ? iflowJson.RECEIVERCHANNEL.split('_')[1] : iflowJson.RECEIVERCHANNEL
-        }
-        else {
-            iflowJson.RECEIVER_ADAPTER = "ReceiverAdapter";
-        }
-
-        //* Extract Source and Target Systems
-        if (iflowIdInput.includes('_to_')) {
-            const systems = iflowIdInput.split('_to_');
-            iflowJson.SOURCE_SYSTEM = systems[0].split('_')[0].toUpperCase();
-            iflowJson.TARGET_SYSTEM = systems[1].split('_')[0].toUpperCase();
-        } else {
-            iflowJson.SOURCE_SYSTEM = iflowIdInput.split('_')[0].toUpperCase();
-            iflowJson.TARGET_SYSTEM = "[Target Name]";
-        }
-
-        //* Fetching Region
-        if (iflowIdInput.includes('_la_')) {
-            iflowJson.REGION = "LA";
-        } else if (iflowIdInput.includes('_na_')) {
-            iflowJson.REGION = "NA";
-        } else {
-            iflowJson.REGION = "";
-        }
-
-        //! Adding current date to the iflowJson in DD/MM/YYYY format
-        const currentDate = new Date();
-        const day = String(currentDate.getDate()).padStart(2, '0');
-        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-        const year = currentDate.getFullYear();
-        iflowJson.DATE = `${day}/${month}/${year}`;
-
-
-
-        result.push(iflowJson);
+    //! Adding Sender Component if user wants
+    if (iflowObj.senderComponent) {
+        iflowJson.SENDER_SERVICE = [{ SENDER_SERVICE: iflowObj.senderComponent }];
     }
-
-    return result;
 }
 );
 module.exports = enhanceIflowJson;
