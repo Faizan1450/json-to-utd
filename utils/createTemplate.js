@@ -7,7 +7,7 @@ const Docxtemplater = require('docxtemplater');
 const createTemplate = asyncHandler(async (iflowJson) => {
     const data = iflowJson;
     // let template = "";
-    
+
     // if (iflowJson.COUNT <= 1) {
     //     template = process.env.UTD_TEMPLATE;
     // } else {
@@ -30,38 +30,22 @@ const createTemplate = asyncHandler(async (iflowJson) => {
     const buf = doc.toBuffer();
 
 
-    //UTD_{IDD}_{SENDERINTERFACENAME/ DOCUMENTTYPE(B2B)}
-
-    // let IDD = "";
-    // if (iflowJson['IDD'].length >= 2) {
-    //     const temp = [];
-    //     iflowJson['IDD'].forEach(obj => {
-    //         temp.push(obj.IDD);
-    //     })
-    //     IDD = temp.join('_');
-    // } else {
-    //     IDD = iflowJson['IDD'].IDD || "";
-    // }
-
-    let temp = [];
-    iflowJson['IDD'].forEach(obj => {
-        temp.push(obj.IDD);
-    })
-    let IDD = temp.join('_');
+    const IDD = iflowJson['IDD'];
     const region = iflowJson['REGION'] || '';
     const source = iflowJson["SOURCE_NAME"] || '';
-
-    temp = [];
-    iflowJson['TARGET'].forEach(obj => {
-        temp.push(obj.TARGET);
-    })
-    let target = temp.join('_');
+    const target = iflowJson['TARGET']
     const runtime = iflowJson.RUNTIME || '';
     // UTD name should be UTD_REGION_IDD_SENDER_TO_RECEIVER_RUNTIME.DOCX
-    const fileName = `UTD_${region}_${IDD}_${source}_TO_${target}_${runtime}.docx`;
+    let fileName = `UTD_${region}_${IDD}_${source}_TO_${target}_${runtime}`;
+    if (fileName.length > 250) {
+        console.log("File Name Character Length Exceed");
+        fileName = fileName.substring(0, 250);
+    }
+    fileName += `.docx`;
     const filePath = path.resolve(process.env.OUTPUT_UTD_DESTINATION, fileName);
     fs.writeFileSync(filePath, buf);
-    return fileName;
+    console.log("Template Created ✅")
+    return filePath;
 });
 
 module.exports = createTemplate;
