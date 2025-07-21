@@ -45,7 +45,7 @@ const enhanceIflowJson = asyncHandler(async (iflowJson) => {
 
     //! Adding Reviewer Name
     let reviewerName = iflowJson.reviewerName?.trim();
-    iflowJson.REVIEWER = reviewerName ? toTitleCase(reviewerName) : "Govindaraj Thangavel";
+    iflowJson.REVIEWER = reviewerName ? toTitleCase(reviewerName) : "Akash";
 }
 );
 module.exports = enhanceIflowJson;
